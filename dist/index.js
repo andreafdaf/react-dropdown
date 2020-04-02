@@ -108,6 +108,14 @@ function (_Component) {
       event.preventDefault();
 
       if (!this.props.disabled) {
+        if (this.state.isOpen && typeof this.props.onClose === 'function') {
+          this.props.onClose();
+        }
+
+        if (!this.state.isOpen && typeof this.props.onOpen === 'function') {
+          this.props.onOpen();
+        }
+
         this.setState({
           isOpen: !this.state.isOpen
         });
@@ -148,6 +156,10 @@ function (_Component) {
       };
       this.fireChangeEvent(newState);
       this.setState(newState);
+
+      if (typeof this.props.onClose === 'function') {
+        this.props.onClose();
+      }
     }
   }, {
     key: "fireChangeEvent",
@@ -218,6 +230,10 @@ function (_Component) {
       if (this.mounted) {
         if (!_reactDom["default"].findDOMNode(this).contains(event.target)) {
           if (this.state.isOpen) {
+            if (typeof this.props.onClose === 'function') {
+              this.props.onClose();
+            }
+
             this.setState({
               isOpen: false
             });
