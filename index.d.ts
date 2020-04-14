@@ -26,7 +26,8 @@ declare module "react-dropdown" {
     onOpen?: () => void;
     onClose?: () => void;
     value?: Option | string;
-    placeholder?: String;
+    placeholder?: string;
+    searchable?: boolean;
   }
 
   class ReactDropdown extends React.Component<ReactDropdownProps> {

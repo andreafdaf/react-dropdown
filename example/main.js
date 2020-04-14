@@ -6,6 +6,7 @@ import ObjectArrayExample from './objectArrayExample'
 import ZeroValObjectArrayExample from './zeroValObjectArrayExample'
 import CustomArrowExample from './customArrowExample'
 import OnOpenOnCloseExample from './onOpenOnCloseExample'
+import SearchableExample from './searchableExample'
 
 class App extends Component {
   render () {
@@ -42,6 +43,7 @@ class App extends Component {
         <ZeroValObjectArrayExample />
         <CustomArrowExample />
         <OnOpenOnCloseExample />
+        <SearchableExample />
 
         <section>
           <h3>License: </h3>

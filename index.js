@@ -17,6 +17,8 @@ class Dropdown extends Component {
     this.mounted = true
     this.handleDocumentClick = this.handleDocumentClick.bind(this)
     this.fireChangeEvent = this.fireChangeEvent.bind(this)
+    this.handleInputChange = this.handleInputChange.bind(this)
+    this.setRef = this.setRef.bind(this)
   }
 
   componentWillReceiveProps (newProps) {
@@ -36,6 +38,16 @@ class Dropdown extends Component {
   componentDidMount () {
     document.addEventListener('click', this.handleDocumentClick, false)
     document.addEventListener('touchend', this.handleDocumentClick, false)
+  }
+
+  componentDidUpdate () {
+    if (
+      this.inputField &&
+      this.state.isOpen &&
+      document.activeElement !== this.inputField
+    ) {
+      this.inputField.focus()
+    }
   }
 
   componentWillUnmount () {
@@ -60,7 +72,8 @@ class Dropdown extends Component {
         this.props.onOpen()
       }
       this.setState({
-        isOpen: !this.state.isOpen
+        isOpen: !this.state.isOpen,
+        inputValue: '',
       })
     }
   }
@@ -85,10 +98,11 @@ class Dropdown extends Component {
   }
 
   setValue (value, label) {
-    let newState = {
+    const newState = {
       selected: {
         value,
-        label},
+        label
+      },
       isOpen: false
     }
     this.fireChangeEvent(newState)
@@ -109,8 +123,14 @@ class Dropdown extends Component {
     if (typeof value === 'undefined') {
       value = option.label || option
     }
-    let label = option.label || option.value || option
-    let isSelected = value === this.state.selected.value || value === this.state.selected
+    if (
+      this.props.searchable &&
+      !value.toLowerCase().includes(this.state.inputValue.toLowerCase())
+    ) {
+      return null
+    }
+    const label = option.label || option.value || option
+    const isSelected = value === this.state.selected.value || value === this.state.selected
 
     const classes = {
       [`${this.props.baseClassName}-option`]: true,
@@ -134,13 +154,17 @@ class Dropdown extends Component {
   }
 
   buildMenu () {
-    let { options, baseClassName } = this.props
-    let ops = options.map((option) => {
+    const { options, baseClassName, searchable } = this.props
+    const ops = options.map((option) => {
       if (option.type === 'group') {
-        let groupTitle = (<div className={`${baseClassName}-title`}>
+        const groupTitle = (<div className={`${baseClassName}-title`}>
           {option.name}
         </div>)
-        let _options = option.items.map((item) => this.renderOption(item))
+        const _options = option.items.map((item) => this.renderOption(item)).filter(o => o)
+
+        if (searchable && !_options.length) {
+          return null
+        }
 
         return (
           <div className={`${baseClassName}-group`} key={option.name} role='listbox' tabIndex='-1'>
@@ -151,11 +175,11 @@ class Dropdown extends Component {
       } else {
         return this.renderOption(option)
       }
-    })
+    }).filter(o => o)
 
-    return ops.length ? ops : <div className={`${baseClassName}-noresults`}>
-                                No options found
-    </div>
+    return ops.length
+      ? ops
+      : (<div className={`${baseClassName}-noresults`}>No options found</div>)
   }
 
   handleDocumentClick (event) {
@@ -175,8 +199,48 @@ class Dropdown extends Component {
     return typeof this.state.selected === 'string' || this.state.selected.value !== ''
   }
 
+  handleInputChange (e) {
+    this.setState({ inputValue: e.target.value })
+    e.stopPropagation()
+    e.preventDefault()
+    return false
+  }
+
+  setRef (e) {
+    this.inputField = e
+  }
+
+  renderInputField () {
+    const { inputValue } = this.state
+
+    return (
+      <input
+        type="text"
+        value={inputValue || ''}
+        onChange={this.handleInputChange}
+        style={{
+          border: 0,
+          padding: 0,
+          margin: 0,
+          background: 'transparent',
+        }}
+        ref={this.setRef}
+      />
+    )
+  }
+
   render () {
-    const { baseClassName, controlClassName, placeholderClassName, menuClassName, arrowClassName, arrowClosed, arrowOpen, className } = this.props
+    const {
+      baseClassName,
+      controlClassName,
+      placeholderClassName,
+      menuClassName,
+      arrowClassName,
+      arrowClosed,
+      arrowOpen,
+      className,
+      searchable,
+    } = this.props
 
     const disabledClass = this.props.disabled ? 'Dropdown-disabled' : ''
     const placeHolderValue = typeof this.state.selected === 'string' ? this.state.selected : this.state.selected.label
@@ -214,8 +278,17 @@ class Dropdown extends Component {
 
     return (
       <div className={dropdownClass}>
-        <div className={controlClass} onMouseDown={this.handleMouseDown.bind(this)} onTouchEnd={this.handleMouseDown.bind(this)} aria-haspopup='listbox'>
-          {value}
+        <div
+          className={controlClass}
+          onMouseDown={this.handleMouseDown.bind(this)}
+          onTouchEnd={this.handleMouseDown.bind(this)}
+          aria-haspopup='listbox'
+        >
+          {
+            searchable && this.state.isOpen
+            ? this.renderInputField()
+            : value
+          }
           <div className={`${baseClassName}-arrow-wrapper`}>
             {arrowOpen && arrowClosed
               ? this.state.isOpen ? arrowOpen : arrowClosed
