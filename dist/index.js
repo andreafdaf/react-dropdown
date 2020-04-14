@@ -60,6 +60,8 @@ function (_Component) {
     _this.mounted = true;
     _this.handleDocumentClick = _this.handleDocumentClick.bind(_assertThisInitialized(_this));
     _this.fireChangeEvent = _this.fireChangeEvent.bind(_assertThisInitialized(_this));
+    _this.handleInputChange = _this.handleInputChange.bind(_assertThisInitialized(_this));
+    _this.setRef = _this.setRef.bind(_assertThisInitialized(_this));
     return _this;
   }
 
@@ -90,6 +92,13 @@ function (_Component) {
       document.addEventListener('touchend', this.handleDocumentClick, false);
     }
   }, {
+    key: "componentDidUpdate",
+    value: function componentDidUpdate() {
+      if (this.inputField && this.state.isOpen && document.activeElement !== this.inputField) {
+        this.inputField.focus();
+      }
+    }
+  }, {
     key: "componentWillUnmount",
     value: function componentWillUnmount() {
       this.mounted = false;
@@ -108,8 +117,17 @@ function (_Component) {
       event.preventDefault();
 
       if (!this.props.disabled) {
+        if (this.state.isOpen && typeof this.props.onClose === 'function') {
+          this.props.onClose();
+        }
+
+        if (!this.state.isOpen && typeof this.props.onOpen === 'function') {
+          this.props.onOpen();
+        }
+
         this.setState({
-          isOpen: !this.state.isOpen
+          isOpen: !this.state.isOpen,
+          inputValue: ''
         });
       }
     }
@@ -148,6 +166,10 @@ function (_Component) {
       };
       this.fireChangeEvent(newState);
       this.setState(newState);
+
+      if (typeof this.props.onClose === 'function') {
+        this.props.onClose();
+      }
     }
   }, {
     key: "fireChangeEvent",
@@ -165,6 +187,10 @@ function (_Component) {
 
       if (typeof value === 'undefined') {
         value = option.label || option;
+      }
+
+      if (this.props.searchable && !value.toLowerCase().includes(this.state.inputValue.toLowerCase())) {
+        return null;
       }
 
       var label = option.label || option.value || option;
@@ -187,7 +213,8 @@ function (_Component) {
 
       var _this$props = this.props,
           options = _this$props.options,
-          baseClassName = _this$props.baseClassName;
+          baseClassName = _this$props.baseClassName,
+          searchable = _this$props.searchable;
       var ops = options.map(function (option) {
         if (option.type === 'group') {
           var groupTitle = _react["default"].createElement("div", {
@@ -196,7 +223,13 @@ function (_Component) {
 
           var _options = option.items.map(function (item) {
             return _this2.renderOption(item);
+          }).filter(function (o) {
+            return o;
           });
+
+          if (searchable && !_options.length) {
+            return null;
+          }
 
           return _react["default"].createElement("div", {
             className: "".concat(baseClassName, "-group"),
@@ -207,6 +240,8 @@ function (_Component) {
         } else {
           return _this2.renderOption(option);
         }
+      }).filter(function (o) {
+        return o;
       });
       return ops.length ? ops : _react["default"].createElement("div", {
         className: "".concat(baseClassName, "-noresults")
@@ -218,6 +253,10 @@ function (_Component) {
       if (this.mounted) {
         if (!_reactDom["default"].findDOMNode(this).contains(event.target)) {
           if (this.state.isOpen) {
+            if (typeof this.props.onClose === 'function') {
+              this.props.onClose();
+            }
+
             this.setState({
               isOpen: false
             });
@@ -229,6 +268,38 @@ function (_Component) {
     key: "isValueSelected",
     value: function isValueSelected() {
       return typeof this.state.selected === 'string' || this.state.selected.value !== '';
+    }
+  }, {
+    key: "handleInputChange",
+    value: function handleInputChange(e) {
+      this.setState({
+        inputValue: e.target.value
+      });
+      e.stopPropagation();
+      e.preventDefault();
+      return false;
+    }
+  }, {
+    key: "setRef",
+    value: function setRef(e) {
+      this.inputField = e;
+    }
+  }, {
+    key: "renderInputField",
+    value: function renderInputField() {
+      var inputValue = this.state.inputValue;
+      return _react["default"].createElement("input", {
+        type: "text",
+        value: inputValue || '',
+        onChange: this.handleInputChange,
+        style: {
+          border: 0,
+          padding: 0,
+          margin: 0,
+          background: 'transparent'
+        },
+        ref: this.setRef
+      });
     }
   }, {
     key: "render",
@@ -243,7 +314,8 @@ function (_Component) {
           arrowClassName = _this$props2.arrowClassName,
           arrowClosed = _this$props2.arrowClosed,
           arrowOpen = _this$props2.arrowOpen,
-          className = _this$props2.className;
+          className = _this$props2.className,
+          searchable = _this$props2.searchable;
       var disabledClass = this.props.disabled ? 'Dropdown-disabled' : '';
       var placeHolderValue = typeof this.state.selected === 'string' ? this.state.selected : this.state.selected.label;
       var dropdownClass = (0, _classnames["default"])((_classNames = {}, _defineProperty(_classNames, "".concat(baseClassName, "-root"), true), _defineProperty(_classNames, className, !!className), _defineProperty(_classNames, 'is-open', this.state.isOpen), _classNames));
@@ -267,7 +339,7 @@ function (_Component) {
         onMouseDown: this.handleMouseDown.bind(this),
         onTouchEnd: this.handleMouseDown.bind(this),
         "aria-haspopup": "listbox"
-      }, value, _react["default"].createElement("div", {
+      }, searchable && this.state.isOpen ? this.renderInputField() : value, _react["default"].createElement("div", {
         className: "".concat(baseClassName, "-arrow-wrapper")
       }, arrowOpen && arrowClosed ? this.state.isOpen ? arrowOpen : arrowClosed : _react["default"].createElement("span", {
         className: arrowClass
